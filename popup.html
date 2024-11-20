@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SiteTime Tracker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    h1 {
+      color: #0073e6;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: #0073e6;
+      color: #fff;
+    }
+    button, input {
+      padding: 10px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 5px;
+      width: 100%;
+    }
+    button {
+      background-color: #0073e6;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #005bb5;
+    }
+    input {
+      border: 1px solid #ddd;
+    }
+    #graphContainer {
+      margin-top: 20px;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+<body>
+  <h1>SiteTime Tracker</h1>
+  <table id="timeTable">
+    <thead>
+      <tr><th>Site</th><th>Time Spent</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <button id="toggleHistory">View Weekly History</button>
+  <script src="popup.js"></script>
+</body>
+</html>

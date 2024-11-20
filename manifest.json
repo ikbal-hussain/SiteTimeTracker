@@ -1,0 +1,18 @@
+{
+    "manifest_version": 3,
+    "name": "SiteTime Tracker",
+    "version": "1.1",
+    "permissions": ["tabs", "idle", "storage", "notifications", "alarms"],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "action": {
+      "default_popup": "popup.html"
+    },
+    "icons": {
+      "128": "icons/SiteTimeTrackerLogo.PNG"
+    }
+  }
+
+  
+  
