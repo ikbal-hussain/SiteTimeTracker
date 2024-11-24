@@ -30,7 +30,20 @@ function loadHistory() {
 
 function renderTable(data, isHistory = false) {
   tableBody.innerHTML = "";
-  Object.entries(data).forEach(([key, value]) => {
+
+  // Sort entries by time in descending order
+  const sortedEntries = Object.entries(data).sort((a, b) => {
+    const timeA = isHistory
+      ? Object.values(a[1]).reduce((sum, ms) => sum + ms, 0) // Sum all site times for history
+      : a[1]; // Single value for daily data
+    const timeB = isHistory
+      ? Object.values(b[1]).reduce((sum, ms) => sum + ms, 0)
+      : b[1];
+    return timeB - timeA; // Descending order
+  });
+
+  // Render sorted entries
+  sortedEntries.forEach(([key, value]) => {
     const row = document.createElement("tr");
     const time = isHistory
       ? Object.entries(value)
@@ -41,6 +54,7 @@ function renderTable(data, isHistory = false) {
     tableBody.appendChild(row);
   });
 }
+
 
 
 toggleButton.addEventListener("click", () => {
