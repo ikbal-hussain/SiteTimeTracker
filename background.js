@@ -1,28 +1,26 @@
 let currentSite = null;
 let startTime = null;
 let timeData = {};
-let history = {}; 
-
+let history = {};
+const localStorageKey = "siteTimeTrackerBackup";
 
 chrome.runtime.onStartup.addListener(() => {
   chrome.storage.local.get(["timeData", "history"], (data) => {
     timeData = data.timeData || {};
     history = data.history || {};
+    syncFromLocalStorage(); // Sync from localStorage in case of missing data
   });
 });
-
 
 chrome.tabs.onActivated.addListener(async () => {
   const tab = await chrome.tabs.query({ active: true, currentWindow: true });
   switchSite(tab[0]?.url);
 });
 
-
 chrome.tabs.onUpdated.addListener(async () => {
   const tab = await chrome.tabs.query({ active: true, currentWindow: true });
   switchSite(tab[0]?.url);
 });
-
 
 chrome.idle.onStateChanged.addListener((state) => {
   if (state === "idle" || state === "locked") {
@@ -30,14 +28,13 @@ chrome.idle.onStateChanged.addListener((state) => {
   }
 });
 
-
 function switchSite(url) {
   const now = Date.now();
   const today = new Date().toISOString().slice(0, 10);
 
   if (!history[today]) {
     history[today] = {};
-    pruneHistory(); 
+    pruneHistory();
   }
 
   if (currentSite && startTime) {
@@ -46,6 +43,7 @@ function switchSite(url) {
     timeData[currentSite] += timeSpent;
     history[today][currentSite] = timeData[currentSite];
     chrome.storage.local.set({ timeData, history });
+    syncToLocalStorage(); // Update localStorage with the latest data
   }
 
   currentSite = url ? extractHostname(url) : null;
@@ -54,7 +52,6 @@ function switchSite(url) {
   resetDailyDataIfNeeded();
 }
 
-
 function resetDailyDataIfNeeded() {
   const today = new Date().toISOString().slice(0, 10);
   chrome.storage.local.get("lastReset", (data) => {
@@ -62,10 +59,10 @@ function resetDailyDataIfNeeded() {
     if (lastReset !== today) {
       chrome.storage.local.set({ lastReset: today, timeData: {} });
       timeData = {};
+      syncToLocalStorage(); // Reset data in localStorage
     }
   });
 }
-
 
 function extractHostname(url) {
   try {
@@ -75,20 +72,17 @@ function extractHostname(url) {
   }
 }
 
-
 function pruneHistory() {
   const dates = Object.keys(history).sort().reverse();
   while (dates.length > 7) {
     delete history[dates.pop()];
   }
   chrome.storage.local.set({ history });
+  syncToLocalStorage(); // Sync updated history to localStorage
 }
 
-
-
-let alertsEnabled = true; 
-let dailyLimit = 3600000; 
-
+let alertsEnabled = true;
+let dailyLimit = 3600000;
 
 setInterval(() => {
   if (!alertsEnabled) return;
@@ -103,18 +97,16 @@ setInterval(() => {
       notify("You've exceeded your daily browsing limit!", `Total time spent today: ${formatTime(totalToday)}`);
     }
   });
-}, 30000); 
-
+}, 30000);
 
 function notify(title, message) {
   chrome.notifications.create({
     type: "basic",
-    iconUrl: "icons/SiteTimeTrackerLogo.PNG", 
+    iconUrl: "icons/SiteTimeTrackerLogo.PNG",
     title,
     message,
   });
 }
-
 
 function formatTime(ms) {
   const seconds = Math.floor(ms / 1000);
@@ -125,10 +117,8 @@ function formatTime(ms) {
   return `${hours}h`;
 }
 
-
-
 chrome.runtime.onStartup.addListener(() => {
-  chrome.alarms.create("checkUsage", { periodInMinutes: 1 }); 
+  chrome.alarms.create("checkUsage", { periodInMinutes: 1 });
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
@@ -136,7 +126,6 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     monitorBrowsingUsage();
   }
 });
-
 
 function monitorBrowsingUsage() {
   const today = new Date().toISOString().slice(0, 10);
@@ -149,4 +138,25 @@ function monitorBrowsingUsage() {
       notify("Daily Limit Exceeded", `Total browsing time today: ${formatTime(totalToday)}`);
     }
   });
+}
+
+// Synchronize data to localStorage for redundancy
+function syncToLocalStorage() {
+  const backup = {
+    timeData,
+    history,
+    lastUpdated: new Date().toISOString(),
+  };
+  localStorage.setItem(localStorageKey, JSON.stringify(backup));
+}
+
+// Recover data from localStorage if chrome.storage.local data is unavailable
+function syncFromLocalStorage() {
+  const backup = localStorage.getItem(localStorageKey);
+  if (backup) {
+    const { timeData: localTimeData, history: localHistory } = JSON.parse(backup);
+    if (!Object.keys(timeData).length) timeData = localTimeData || {};
+    if (!Object.keys(history).length) history = localHistory || {};
+    chrome.storage.local.set({ timeData, history }); // Ensure both storages are in sync
+  }
 }
